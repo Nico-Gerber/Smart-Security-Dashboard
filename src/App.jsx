@@ -1,7 +1,7 @@
-import { Button, Box, Typography, Card, Container } from '@mui/material'
+import { Button, Box, Typography, Card, Container, Divider } from '@mui/material'
 import { useState } from 'react'
 
-import { DoorClosed, Warehouse, Thermometer, Grid2X2 } from 'lucide-react'
+import { DoorClosed, Warehouse, Thermometer, Grid2X2, Clock, Wifi } from 'lucide-react'
 
 function App() {
 
@@ -22,6 +22,16 @@ function App() {
       backgroundColor: "oklch(0.32 0.015 250)",
       boxShadow: "none"
     },
+  }
+
+
+  const smallGray = {
+    fontFamily: '"IBM Plex Mono", monospace',
+    fontWeight: 400,
+    letterSpacing: "0.18em",
+    textTransform: "uppercase",
+    color: "oklch(0.66 0.01 250)",
+    mt: 0.3
   }
 
 
@@ -348,7 +358,7 @@ function App() {
                     sx={{
                       fontFamily: '"IBM Plex Sans", sans-serif',
                       fontSize: 35,
-                      fontWeight: 500,
+                      fontWeight: 400,
                       letterSpacing: "-0.01em",
                       color: "oklch(0.93 0.005 250)",
                       mt: 4,
@@ -362,25 +372,66 @@ function App() {
 
 
 
-
-                {/* Last Message */}
-                <Typography
-                  sx={{
-                    fontFamily: '"IBM Plex Mono", monospace',
-                    fontSize: 10,
-                    fontWeight: 400,
-                    letterSpacing: "0.18em",
-                    textTransform: "uppercase",
-                    color: "oklch(0.66 0.01 250)",
-                    mt: 1
-                  }}
-                >
-                  Last Messge: {panel.lastmsg}
-                </Typography>
+                <Divider sx={{ background: '#636363ff', mt: 2, mb: 2 }}></Divider>
 
 
 
-                <Box sx={{ mt: 12, display: 'flex', justifyContent: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+
+                  <Clock color='white'></Clock>
+
+
+
+                  <Box sx={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
+                    {/* Last Message */}
+                    <Typography
+                      sx={{ ...smallGray, fontSize: 10 }}
+                    >
+                      Last Messge
+                    </Typography>
+
+
+                    <Typography
+                      sx={{ ...smallGray, fontSize: 10 }}
+                    >
+                      {panel.lastmsg}
+                    </Typography>
+
+
+
+                  </Box>
+
+
+                </Box>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2 }}>
+
+                  <Wifi color='white'></Wifi>
+
+                  <Box sx={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
+                    {/* Last Message */}
+                    <Typography
+                      sx={{ ...smallGray, fontSize: 10 }}
+                    >
+                      Device Status
+                    </Typography>
+
+
+                    <Typography
+                      sx={{ ...smallGray, fontSize: 10, color: "#56b16d" }}
+                    >
+                      Online
+                    </Typography>
+
+
+
+                  </Box>
+
+
+
+                </Box>
+
+                <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
 
                   {/* ARM / DISARM BUTTON */}
                   <Button
