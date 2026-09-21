@@ -151,40 +151,6 @@ function App() {
   }
 
 
-  const [securityPanels, setSecurityPanels] = useState([
-    {
-      name: "Front Door",
-      armed: true,
-      status: "Closed",
-      mqtt: "home/frontdoor/status",
-      lastmsg: "2s",
-      icon: DoorClosed
-    },
-    {
-      name: "Window",
-      armed: true,
-      status: "Open",
-      mqtt: "home/window/status",
-      lastmsg: "20s",
-      icon: Grid2X2
-    },
-    {
-      name: "Garage",
-      armed: true,
-      status: "Closed",
-      mqtt: "home/garage/status",
-      lastmsg: "10m",
-      icon: Warehouse
-    },
-    {
-      name: "Temperature",
-      armed: true,
-      status: "22 °C",
-      mqtt: "home/temperature/status",
-      lastmsg: "15m",
-      icon: Thermometer
-    }
-  ])
 
 
   // Arm every zone
@@ -309,6 +275,68 @@ function App() {
   }
 
 
+
+  const sendGarageCommand = async (command) => {
+    try {
+      const response = await fetch(
+        'http://localhost:5001/api/garage/command',
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            command: command
+          })
+        }
+      );
+
+    } catch (error) {
+      console.error("Failed to send garage command:", error);
+    }
+  };
+
+
+
+  const [securityPanels, setSecurityPanels] = useState([
+    {
+      name: "Front Door",
+      armed: true,
+      status: "Closed",
+      mqtt: "home/frontdoor/status",
+      lastmsg: "2s",
+      icon: DoorClosed
+    },
+    {
+      name: "Window",
+      armed: true,
+      status: "Open",
+      mqtt: "home/window/status",
+      lastmsg: "20s",
+      icon: Grid2X2
+
+    },
+    {
+      name: "Garage",
+      armed: true,
+      status: "Closed",
+      mqtt: "home/garage/status",
+      lastmsg: "10m",
+      icon: Warehouse,
+      command: sendGarageCommand
+
+    },
+    {
+      name: "Temperature",
+      armed: true,
+      status: "22 °C",
+      mqtt: "home/temperature/status",
+      lastmsg: "15m",
+      icon: Thermometer
+    }
+  ])
+
+
   return (
     <>
 
@@ -341,7 +369,11 @@ function App() {
               <Typography
                 sx={{
                   fontFamily: '"IBM Plex Mono", monospace',
-                  fontSize: 15,
+                  fontSize: {
+                    xs: 8,
+                    sm: 10,
+                    md: 15
+                  },
                   fontWeight: 400,
                   letterSpacing: "0.18em",
                   textTransform: "uppercase",
@@ -356,7 +388,11 @@ function App() {
                 component="h1"
                 sx={{
                   fontFamily: '"IBM Plex Sans", sans-serif',
-                  fontSize: 35,
+                  fontSize: {
+                    xs: 15,
+                    sm: 30,
+                    md: 35
+                  },
                   fontWeight: 500,
                   letterSpacing: "-0.01em",
                   color: "oklch(0.93 0.005 250)",
@@ -408,6 +444,10 @@ function App() {
         <Box
           sx={{
             display: "flex",
+            flexDirection: {
+              xs: "column",
+              md: "row"
+            },
             gap: 2,
             mt: 2
           }}
@@ -422,14 +462,22 @@ function App() {
 
 
               <Card
-                key={panel.name}
                 sx={{
                   background: "#15191c",
                   border: "1px solid",
                   borderColor: "#353535ff",
                   borderRadius: 4,
-                  height: 350,
-                  width: 360,
+                  height: 380,
+
+                  boxSizing: "border-box",
+                  minWidth: 0,
+
+                  width: {
+                    xs: "100%",
+                    sm: "calc(50% - 8px)",
+                    lg: "calc(25% - 12px)"
+                  },
+
                   padding: 2,
 
                   borderLeft: panel.armed
@@ -632,17 +680,22 @@ function App() {
                 <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
 
                   {/* ARM / DISARM BUTTON */}
-                  <Button
-                    variant="contained"
-                    disableElevation
-                    onClick={() => toggleArmed(panel.name)}
-                    sx={{
-                      ...btnBase,
-                      width: 300
-                    }}
-                  >
-                    {panel.armed ? "Disarm" : "Arm"}
-                  </Button>
+
+
+                  {panel.command && (
+                    <Button
+                      variant="contained"
+                      disableElevation
+                      onClick={() => { toggleArmed(panel.name); { panel.armed ? panel.command("disarm") : panel.command("arm") } }}
+                      sx={{
+                        ...btnBase,
+                        width: 300
+                      }}
+                    >
+                      {panel.armed ? "Disarm" : "Arm"}
+                    </Button>
+
+                  )}
 
                 </Box>
 
