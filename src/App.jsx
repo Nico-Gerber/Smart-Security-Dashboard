@@ -15,11 +15,17 @@ import {
   TableRow,
   TablePagination,
   Modal,
-  TextField
+  TextField,
+  Checkbox,
+  FormControlLabel,
+  useMediaQuery
 } from '@mui/material'
 import { useState } from 'react'
 
-import { DoorClosed, Warehouse, Thermometer, Grid2X2, Clock, Wifi, FileText } from 'lucide-react'
+import { DoorClosed, Warehouse, Thermometer, Grid2X2, Clock, Wifi, FileText, Settings } from 'lucide-react'
+
+
+import { CircularSlider } from 'react-web-circular-slider';
 
 function App() {
 
@@ -257,6 +263,14 @@ function App() {
 
   const handleCloseEditModel = () => setEditTempModal(false)
 
+
+
+  const [settingsModal, setSettingsModal] = useState(false)
+
+  const handleOpenSettingsModel = () => setSettingsModal(true)
+
+  const handleCloseSettingsModel = () => setSettingsModal(false)
+
   const filteredLogs =
     zoneFilter === "all"
       ? mockLogs
@@ -282,6 +296,9 @@ function App() {
     setZoneFilter(event.target.value)
     setPage(0)
   }
+
+
+
 
 
 
@@ -346,6 +363,37 @@ function App() {
   ])
 
 
+  const isMobile = useMediaQuery('(max-width:600px)');
+
+  const [automation, setAutomation] = useState(false);
+
+  const [scheduleStart, setScheduleStart] = useState({
+    h: 22,
+    m: 30
+  });
+
+  const [scheduleEnd, setScheduleEnd] = useState({
+    h: 7,
+    m: 0
+  });
+
+  const handleConfirmSchedule = () => {
+    const armTime =
+      `${String(scheduleStart.h).padStart(2, '0')}:${String(scheduleStart.m).padStart(2, '0')}`;
+
+    const disarmTime =
+      `${String(scheduleEnd.h).padStart(2, '0')}:${String(scheduleEnd.m).padStart(2, '0')}`;
+
+    console.log({
+      automation,
+      armTime,
+      disarmTime
+    });
+
+    handleCloseSettingsModel();
+  };
+
+
   return (
     <>
 
@@ -379,7 +427,7 @@ function App() {
                 sx={{
                   fontFamily: '"IBM Plex Mono", monospace',
                   fontSize: {
-                    xs: 8,
+                    xs: 0,
                     sm: 10,
                     md: 15
                   },
@@ -398,7 +446,7 @@ function App() {
                 sx={{
                   fontFamily: '"IBM Plex Sans", sans-serif',
                   fontSize: {
-                    xs: 15,
+                    xs: 0,
                     sm: 30,
                     md: 35
                   },
@@ -419,7 +467,7 @@ function App() {
                 display: "flex",
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 4
+                gap: 2
               }}
             >
 
@@ -427,7 +475,7 @@ function App() {
                 onClick={armAll}
                 variant="contained"
                 disableElevation
-                sx={btnBase}
+                sx={{ ...btnBase, height: 45 }}
               >
                 Arm All
               </Button>
@@ -437,11 +485,21 @@ function App() {
                 onClick={disarmAll}
                 variant="contained"
                 disableElevation
-                sx={btnBase}
+                sx={{ ...btnBase, height: 45 }}
               >
                 Disarm All
               </Button>
 
+              <Button
+                onClick={handleOpenSettingsModel}
+                variant="contained"
+                disableElevation
+                sx={{ ...btnBase, height: 45, }}
+
+              >
+                <Settings />
+
+              </Button>
             </Box>
 
           </Box>
@@ -1049,6 +1107,10 @@ function App() {
 
       </Container >
 
+
+
+      {/* TEMPERATURE MODAL*/}
+
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
         <Modal
           open={editTempModal}
@@ -1056,7 +1118,7 @@ function App() {
         >
 
           <Card sx={{
-            width: 400,
+            width: 340,
             height: 300,
             transform: 'translate(-50%, -50%)',
             position: 'absolute',
@@ -1076,7 +1138,7 @@ function App() {
                 color: "oklch(0.93 0.005 250)",
                 m: 0,
               }}>
-                Temperture Thresholds
+                Temperature Thresholds
               </Typography>
 
 
@@ -1181,8 +1243,214 @@ function App() {
 
         </Modal>
 
+
       </Box>
 
+
+
+
+      {/* SETTINGS MODAL */}
+
+      <Modal
+        open={settingsModal}
+        onClose={handleCloseSettingsModel}
+      >
+        <Card
+          sx={{
+            width: {
+              xs: 'calc(100% - 32px)',
+              sm: 420,
+            },
+
+            maxWidth: 420,
+
+            maxHeight: {
+              xs: 'calc(100vh - 32px)',
+              sm: '90vh',
+            },
+
+            overflowY: 'auto',
+
+            transform: 'translate(-50%, -50%)',
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+
+            backgroundColor: '#14191c',
+
+            border: '1px solid rgba(107, 129, 113, 0.25)',
+            borderRadius: 2,
+          }}
+        >
+          <Box
+            sx={{
+              p: {
+                xs: 2,
+                sm: 3,
+              },
+
+              display: 'flex',
+              alignItems: 'center',
+              flexDirection: 'column',
+            }}
+          >
+            <Typography
+              sx={{
+                fontFamily: '"IBM Plex Mono", monospace',
+                fontSize: {
+                  xs: 20,
+                  sm: 23,
+                },
+                fontWeight: 500,
+                letterSpacing: '-0.01em',
+                color: 'oklch(0.93 0.005 250)',
+                mb: 2,
+              }}
+            >
+              Settings
+            </Typography>
+
+            <FormControlLabel
+              sx={{
+                width: '100%',
+                mb: 2,
+
+                '& .MuiFormControlLabel-label': {
+                  fontFamily: '"IBM Plex Mono", monospace',
+                  color: 'oklch(0.93 0.005 250)',
+                },
+              }}
+              control={
+                <Checkbox
+                  checked={automation}
+                  onChange={(event) =>
+                    setAutomation(event.target.checked)
+                  }
+                  sx={{
+                    color: '#56b16d',
+
+                    '&.Mui-checked': {
+                      color: '#56b16d',
+                    },
+                  }}
+                />
+              }
+              label="Automatic Arming"
+            />
+
+            <Box
+              sx={{
+                opacity: automation ? 1 : 0.35,
+                pointerEvents: automation ? 'auto' : 'none',
+
+                transition: 'opacity 0.2s ease',
+
+                display: 'flex',
+                justifyContent: 'center',
+                width: '100%',
+              }}
+            >
+              <CircularSlider
+                initialStartTime="22:30"
+                initialEndTime="07:00"
+
+                segments={5}
+
+                strokeWidth={isMobile ? 24 : 30}
+                radius={isMobile ? 105 : 140}
+
+                gradientColorFrom="#56b16d"
+                gradientColorTo="#56b16d"
+
+                showClockFace={true}
+
+                clockFaceColor="oklch(0.93 0.005 250)"
+                bgCircleColor="#252a2e"
+
+                onUpdate={({
+                  startTime,
+                  endTime,
+                  durationMinutes
+                }) => {
+                  setScheduleStart(startTime);
+                  setScheduleEnd(endTime);
+
+                  console.log(
+                    startTime,
+                    endTime,
+                    durationMinutes
+                  );
+                }}
+              />
+            </Box>
+
+
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                width: '100%',
+                mt: 2,
+              }}
+            >
+              <Box>
+                <Typography
+                  sx={{
+                    fontFamily: '"IBM Plex Mono", monospace',
+                    fontSize: 11,
+                    color: '#7d8589',
+                  }}
+                >
+                  ARM
+                </Typography>
+
+                <Typography
+                  sx={{
+                    fontFamily: '"IBM Plex Mono", monospace',
+                    color: automation ? 'oklch(0.93 0.005 250)' : "#222121ff",
+                  }}
+                >
+                  {String(scheduleStart.h).padStart(2, '0')}:
+                  {String(scheduleStart.m).padStart(2, '0')}
+                </Typography>
+              </Box>
+
+              <Box sx={{ textAlign: 'right' }}>
+                <Typography
+                  sx={{
+                    fontFamily: '"IBM Plex Mono", monospace',
+                    fontSize: 11,
+                    color: '#7d8589',
+                  }}
+                >
+                  DISARM
+                </Typography>
+
+                <Typography
+                  sx={{
+                    fontFamily: '"IBM Plex Mono", monospace',
+                    color: automation ? 'oklch(0.93 0.005 250)' : "#222121ff",
+                  }}
+                >
+                  {String(scheduleEnd.h).padStart(2, '0')}:
+                  {String(scheduleEnd.m).padStart(2, '0')}
+                </Typography>
+              </Box>
+            </Box>
+
+
+            <Button
+              variant="contained"
+              onClick={handleConfirmSchedule}
+              sx={{
+                ...btnBase, mt: 1
+              }}
+            >
+              Confirm
+            </Button>
+          </Box>
+        </Card>
+      </Modal>
     </>
   )
 }
