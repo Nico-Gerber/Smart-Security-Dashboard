@@ -20,12 +20,15 @@ import {
   FormControlLabel,
   useMediaQuery
 } from '@mui/material'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
-import { DoorClosed, Warehouse, Thermometer, Grid2X2, Clock, Wifi, FileText, Settings } from 'lucide-react'
+import { DoorClosed, Warehouse, Thermometer, Grid2X2, Clock, Wifi, FileText, Settings, Unlock, Shield } from 'lucide-react'
 
 
 import { CircularSlider } from 'react-web-circular-slider';
+
+
+import { OrbitProgress } from "react-loading-indicators";
 
 function App() {
 
@@ -267,7 +270,9 @@ function App() {
 
   const [settingsModal, setSettingsModal] = useState(false)
 
-  const handleOpenSettingsModel = () => setSettingsModal(true)
+  const handleOpenSettingsModel = () => {
+    setSettingsModal(true)
+  }
 
   const handleCloseSettingsModel = () => setSettingsModal(false)
 
@@ -299,8 +304,44 @@ function App() {
 
 
 
+  const isMobile = useMediaQuery('(max-width:600px)');
+
+  const [automation, setAutomation] = useState(false);
+
+  const [automationData, setAutomationData] = useState([])
+
+  const [automationLoading, setAutomationLoading] = useState(true)
 
 
+
+  const [initialArmTime, setInitialArmTime] = useState("22:30")
+  const [initialDisarmTime, setInitialDisarmTime] = useState("07:00")
+
+
+
+
+  const [scheduleStart, setScheduleStart] = useState({
+    h: 22,
+    m: 30
+  });
+
+  const [scheduleEnd, setScheduleEnd] = useState({
+    h: 7,
+    m: 0
+  });
+
+  const handleConfirmSchedule = async () => {
+    await updateAutomation();
+
+    handleCloseSettingsModel();
+  };
+
+
+
+  {/*ENDPOINT FUCNTIONS*/ }
+
+
+  {/*Garage */ }
 
   const sendGarageCommand = async (command) => {
     try {
@@ -322,6 +363,90 @@ function App() {
     }
   };
 
+
+  {/*Get Automation */ }
+  const getAutomationData = async () => {
+    try {
+      setAutomationLoading(true)
+
+      const response = await fetch(
+        'http://localhost:5001/automation'
+      )
+
+      const data = await response.json()
+
+      console.log("Automation data:", data)
+
+      setAutomationData(data)
+
+      setAutomation(Boolean(data.arm_automation_on))
+
+      const [armH, armM] = data.arm_time.split(':').map(Number)
+
+      setScheduleStart({
+        h: armH,
+        m: armM
+      })
+
+      setInitialArmTime(
+        `${String(armH).padStart(2, '0')}:${String(armM).padStart(2, '0')}`
+      )
+
+
+      const [disarmH, disarmM] = data.disarm_time.split(':').map(Number)
+
+      setScheduleEnd({
+        h: disarmH,
+        m: disarmM
+      })
+
+      setInitialDisarmTime(
+        `${String(disarmH).padStart(2, '0')}:${String(disarmM).padStart(2, '0')}`
+      )
+
+    } catch (error) {
+      console.error("Failed to grab automation data:", error)
+    } finally {
+      setAutomationLoading(false)
+    }
+  }
+
+  {/* Update Automation */ }
+  const updateAutomation = async () => {
+    const armTime =
+      `${String(scheduleStart.h).padStart(2, '0')}:${String(scheduleStart.m).padStart(2, '0')}:00`;
+
+    const disarmTime =
+      `${String(scheduleEnd.h).padStart(2, '0')}:${String(scheduleEnd.m).padStart(2, '0')}:00`;
+
+    const response = await fetch(
+      'http://localhost:5001/automation',
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          armAutomationOn: automation,
+          armTime: armTime,
+          disarmTime: disarmTime
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    console.log(data);
+
+
+    getAutomationData();
+  };
+
+  {/*ON LOAD USE EFFECT */ }
+
+  useEffect(() => {
+    getAutomationData();
+  }, []);
 
 
   const [securityPanels, setSecurityPanels] = useState([
@@ -363,35 +488,6 @@ function App() {
   ])
 
 
-  const isMobile = useMediaQuery('(max-width:600px)');
-
-  const [automation, setAutomation] = useState(false);
-
-  const [scheduleStart, setScheduleStart] = useState({
-    h: 22,
-    m: 30
-  });
-
-  const [scheduleEnd, setScheduleEnd] = useState({
-    h: 7,
-    m: 0
-  });
-
-  const handleConfirmSchedule = () => {
-    const armTime =
-      `${String(scheduleStart.h).padStart(2, '0')}:${String(scheduleStart.m).padStart(2, '0')}`;
-
-    const disarmTime =
-      `${String(scheduleEnd.h).padStart(2, '0')}:${String(scheduleEnd.m).padStart(2, '0')}`;
-
-    console.log({
-      automation,
-      armTime,
-      disarmTime
-    });
-
-    handleCloseSettingsModel();
-  };
 
 
   return (
@@ -1141,8 +1237,6 @@ function App() {
                 Temperature Thresholds
               </Typography>
 
-
-
               <Box sx={{ padding: 2, display: 'flex', alignItems: 'center', flexDirection: 'column' }}>
 
 
@@ -1310,146 +1404,180 @@ function App() {
               Settings
             </Typography>
 
-            <FormControlLabel
-              sx={{
-                width: '100%',
-                mb: 2,
 
-                '& .MuiFormControlLabel-label': {
-                  fontFamily: '"IBM Plex Mono", monospace',
-                  color: 'oklch(0.93 0.005 250)',
-                },
-              }}
-              control={
-                <Checkbox
-                  checked={automation}
-                  onChange={(event) =>
-                    setAutomation(event.target.checked)
-                  }
+            {automationLoading ? (<OrbitProgress color="#32cd32" size="medium" text="" textColor="" />) : (
+
+              <>
+
+
+                <FormControlLabel
                   sx={{
-                    color: '#56b16d',
+                    width: '100%',
+                    mb: 2,
 
-                    '&.Mui-checked': {
-                      color: '#56b16d',
+                    '& .MuiFormControlLabel-label': {
+                      fontFamily: '"IBM Plex Mono", monospace',
+                      color: 'oklch(0.93 0.005 250)',
                     },
                   }}
+                  control={
+                    <Checkbox
+                      checked={automation}
+                      onChange={(event) =>
+                        setAutomation(event.target.checked)
+                      }
+                      sx={{
+                        color: '#56b16d',
+
+                        '&.Mui-checked': {
+                          color: '#56b16d',
+                        },
+                      }}
+                    />
+                  }
+                  label="Automatic Arming"
                 />
-              }
-              label="Automatic Arming"
-            />
 
-            <Box
-              sx={{
-                opacity: automation ? 1 : 0.35,
-                pointerEvents: automation ? 'auto' : 'none',
-
-                transition: 'opacity 0.2s ease',
-
-                display: 'flex',
-                justifyContent: 'center',
-                width: '100%',
-              }}
-            >
-              <CircularSlider
-                initialStartTime="22:30"
-                initialEndTime="07:00"
-
-                segments={5}
-
-                strokeWidth={isMobile ? 24 : 30}
-                radius={isMobile ? 105 : 140}
-
-                gradientColorFrom="#56b16d"
-                gradientColorTo="#56b16d"
-
-                showClockFace={true}
-
-                clockFaceColor="oklch(0.93 0.005 250)"
-                bgCircleColor="#252a2e"
-
-                onUpdate={({
-                  startTime,
-                  endTime,
-                  durationMinutes
-                }) => {
-                  setScheduleStart(startTime);
-                  setScheduleEnd(endTime);
-
-                  console.log(
-                    startTime,
-                    endTime,
-                    durationMinutes
-                  );
-                }}
-              />
-            </Box>
-
-
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                width: '100%',
-                mt: 2,
-              }}
-            >
-              <Box>
-                <Typography
+                <Box
                   sx={{
-                    fontFamily: '"IBM Plex Mono", monospace',
-                    fontSize: 11,
-                    color: '#7d8589',
+                    opacity: automation ? 1 : 0.35,
+                    pointerEvents: automation ? 'auto' : 'none',
+
+                    transition: 'opacity 0.2s ease',
+
+                    display: 'flex',
+                    justifyContent: 'center',
+                    width: '100%',
                   }}
                 >
-                  ARM
-                </Typography>
+                  <CircularSlider
+                    initialStartTime={initialArmTime}
+                    initialEndTime={initialDisarmTime}
 
-                <Typography
+                    startIcon={
+                      <g transform="translate(-10 -10) scale(0.8)">
+                        <Shield
+                          size={24}
+                          strokeWidth={2}
+                          color="#56b16d"
+                        />
+                      </g>
+                    }
+
+                    stopIcon={
+                      <g transform="translate(-10 -10) scale(0.8)">
+                        <Unlock
+                          size={24}
+                          strokeWidth={2}
+                          color="#56b16d"
+                        />
+                      </g>
+                    }
+
+                    segments={5}
+
+                    strokeWidth={isMobile ? 24 : 30}
+                    radius={isMobile ? 105 : 140}
+
+                    gradientColorFrom="#56b16d"
+                    gradientColorTo="#56b16d"
+
+                    showClockFace={true}
+
+                    clockFaceColor="oklch(0.93 0.005 250)"
+                    bgCircleColor="#252a2e"
+
+                    onStartUpdate={({ startTime }) => {
+                      console.log("ARM changed:", startTime)
+
+                      setScheduleStart(startTime)
+                    }}
+
+                    onEndUpdate={({ endTime }) => {
+                      console.log("DISARM changed:", endTime)
+
+                      setScheduleEnd(endTime)
+                    }}
+                  />
+                </Box>
+
+
+                <Box
                   sx={{
-                    fontFamily: '"IBM Plex Mono", monospace',
-                    color: automation ? 'oklch(0.93 0.005 250)' : "#222121ff",
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    mt: 2,
                   }}
                 >
-                  {String(scheduleStart.h).padStart(2, '0')}:
-                  {String(scheduleStart.m).padStart(2, '0')}
-                </Typography>
-              </Box>
+                  <Box>
+                    <Typography
+                      sx={{
+                        fontFamily: '"IBM Plex Mono", monospace',
+                        fontSize: 11,
+                        color: '#7d8589',
+                      }}
+                    >
+                      ARM
+                    </Typography>
 
-              <Box sx={{ textAlign: 'right' }}>
-                <Typography
+                    <Typography
+                      sx={{
+                        fontFamily: '"IBM Plex Mono", monospace',
+                        color: automation ? 'oklch(0.93 0.005 250)' : "#222121ff",
+                      }}
+                    >
+                      {String(scheduleStart.h).padStart(2, '0')}:
+                      {String(scheduleStart.m).padStart(2, '0')}
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography
+                      sx={{
+                        fontFamily: '"IBM Plex Mono", monospace',
+                        fontSize: 11,
+                        color: '#7d8589',
+                      }}
+                    >
+                      DISARM
+                    </Typography>
+
+                    <Typography
+                      sx={{
+                        fontFamily: '"IBM Plex Mono", monospace',
+                        color: automation ? 'oklch(0.93 0.005 250)' : "#222121ff",
+                      }}
+                    >
+                      {String(scheduleEnd.h).padStart(2, '0')}:
+                      {String(scheduleEnd.m).padStart(2, '0')}
+                    </Typography>
+                  </Box>
+                </Box>
+
+
+                <Button
+                  variant="contained"
+                  onClick={handleConfirmSchedule}
                   sx={{
-                    fontFamily: '"IBM Plex Mono", monospace',
-                    fontSize: 11,
-                    color: '#7d8589',
+                    ...btnBase, mt: 1
                   }}
                 >
-                  DISARM
-                </Typography>
-
-                <Typography
-                  sx={{
-                    fontFamily: '"IBM Plex Mono", monospace',
-                    color: automation ? 'oklch(0.93 0.005 250)' : "#222121ff",
-                  }}
-                >
-                  {String(scheduleEnd.h).padStart(2, '0')}:
-                  {String(scheduleEnd.m).padStart(2, '0')}
-                </Typography>
-              </Box>
-            </Box>
+                  Confirm
+                </Button>
 
 
-            <Button
-              variant="contained"
-              onClick={handleConfirmSchedule}
-              sx={{
-                ...btnBase, mt: 1
-              }}
-            >
-              Confirm
-            </Button>
+              </>
+
+            )}
+
+
           </Box>
+
+
         </Card>
+
+
       </Modal>
     </>
   )

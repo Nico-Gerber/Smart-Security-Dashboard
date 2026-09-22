@@ -19,6 +19,7 @@
     "lucide-react": "^1.46.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "react-loading-indicators": "^1.0.1",
     "react-web-circular-slider": "^2.0.14"
   }
 }
