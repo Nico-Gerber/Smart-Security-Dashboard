@@ -13,7 +13,9 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TablePagination
+  TablePagination,
+  Modal,
+  TextField
 } from '@mui/material'
 import { useState } from 'react'
 
@@ -247,6 +249,13 @@ function App() {
 
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(5)
+
+
+  const [editTempModal, setEditTempModal] = useState(false)
+
+  const handleOpenEditModel = () => setEditTempModal(true)
+
+  const handleCloseEditModel = () => setEditTempModal(false)
 
   const filteredLogs =
     zoneFilter === "all"
@@ -669,31 +678,118 @@ function App() {
                       Online
                     </Typography>
 
-
-
                   </Box>
-
-
 
                 </Box>
 
                 <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
 
-                  {/* ARM / DISARM BUTTON */}
 
 
-                  {panel.command && (
-                    <Button
-                      variant="contained"
-                      disableElevation
-                      onClick={() => { toggleArmed(panel.name); { panel.armed ? panel.command("disarm") : panel.command("arm") } }}
-                      sx={{
-                        ...btnBase,
-                        width: 300
-                      }}
-                    >
-                      {panel.armed ? "Disarm" : "Arm"}
-                    </Button>
+                  {/* Front Door Buttons */}
+
+                  {panel.name == "Front Door" && (
+
+                    <Box sx={{ display: 'flex', justifyContent: "space-evenly", gap: 2 }}>
+
+                      <Button
+                        variant="contained"
+
+                        onClick={() => { toggleArmed(panel.name); }}
+                        sx={{
+                          ...btnBase,
+                          width: 150
+                        }}
+                      >
+                        {panel.armed ? "Disarm" : "Arm"}
+                      </Button>
+
+                      <Button
+                        variant='contained'
+
+                        sx={{
+                          ...btnBase,
+                          width: 150
+
+                        }}>Lock</Button>
+
+
+
+                    </Box>
+
+
+                  )}
+
+
+                  {/* Window Buttons */}
+
+                  {panel.name == "Window" && (
+
+                    <Box sx={{ display: 'flex', justifyContent: "space-evenly", gap: 2 }}>
+                      <Button
+                        variant="contained"
+
+                        onClick={() => { toggleArmed(panel.name); }}
+                        sx={{
+                          ...btnBase,
+                          width: 300
+                        }}
+                      >
+                        {panel.armed ? "Disarm" : "Arm"}
+                      </Button>
+
+                    </Box>
+
+                  )}
+
+
+
+                  {/* Garage Buttons */}
+
+                  {panel.name == "Garage" && (
+                    <Box sx={{ display: 'flex', justifyContent: "space-evenly", gap: 2 }}>
+                      <Button
+                        variant="contained"
+
+                        onClick={() => { toggleArmed(panel.name); { panel.armed ? panel.command("disarm") : panel.command("arm") } }}
+                        sx={{
+                          ...btnBase,
+                          width: 150
+                        }}
+                      >
+                        {panel.armed ? "Disarm" : "Arm"}
+                      </Button>
+
+
+                      <Button
+                        variant='contained'
+                        onClick={() => panel.command("silence")}
+                        sx={{
+                          ...btnBase,
+                          width: 150
+
+                        }}>Scilence</Button>
+
+                    </Box>
+                  )}
+
+
+                  {/* Tempreture Buttons */}
+
+                  {panel.name == "Temperature" && (
+
+                    <Box sx={{ display: 'flex', justifyContent: "space-evenly", gap: 2 }}>
+
+                      <Button
+                        variant='contained'
+                        onClick={handleOpenEditModel}
+                        sx={{
+                          ...btnBase,
+                          width: 300
+
+                        }}>Configure</Button>
+
+                    </Box>
 
                   )}
 
@@ -949,13 +1045,143 @@ function App() {
             }}
           />
 
-
-
-
-
         </Card>
 
       </Container >
+
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <Modal
+          open={editTempModal}
+          onClose={handleCloseEditModel}
+        >
+
+          <Card sx={{
+            width: 400,
+            height: 300,
+            transform: 'translate(-50%, -50%)',
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            backgroundColor: "#14191c",
+
+            border: '1px solid rgba(107, 129, 113, 0.25)',
+          }}>
+
+            <Box sx={{ padding: 2, display: 'flex', alignItems: 'center', flexDirection: 'column' }}>
+              <Typography sx={{
+                fontFamily: '"IBM Plex Mono", monospace',
+                fontSize: 23,
+                fontWeight: 500,
+                letterSpacing: "-0.01em",
+                color: "oklch(0.93 0.005 250)",
+                m: 0,
+              }}>
+                Temperture Thresholds
+              </Typography>
+
+
+
+              <Box sx={{ padding: 2, display: 'flex', alignItems: 'center', flexDirection: 'column' }}>
+
+
+                <Box sx={{ padding: 2, display: 'flex', alignItems: 'center', flexDirection: 'row', gap: 3 }}>
+
+                  <TextField
+                    id="high-temp"
+                    label="High Temp"
+                    variant="outlined"
+                    sx={{
+                      '& .MuiInputLabel-root': {
+                        color: 'oklch(0.93 0.005 250)',
+                        fontFamily: '"IBM Plex Mono", monospace',
+                      },
+
+                      '& .MuiInputLabel-root.Mui-focused': {
+                        color: 'oklch(0.93 0.005 250)',
+                      },
+
+                      '& .MuiOutlinedInput-input': {
+                        color: 'oklch(0.93 0.005 250)',
+                        fontFamily: '"IBM Plex Mono", monospace',
+                      },
+
+                      '& .MuiOutlinedInput-root': {
+                        fontFamily: '"IBM Plex Mono", monospace',
+
+                        '& fieldset': {
+                          borderColor: 'oklch(0.93 0.005 250)',
+                        },
+
+                        '&:hover fieldset': {
+                          borderColor: 'oklch(0.93 0.005 250)',
+                        },
+
+                        '&.Mui-focused fieldset': {
+                          borderColor: 'oklch(0.93 0.005 250)',
+                        },
+                      },
+                    }}
+                  />
+                  <Button variant='contained' sx={btnBase}>Set</Button>
+
+                </Box>
+
+
+                <Box sx={{ padding: 2, display: 'flex', alignItems: 'center', flexDirection: 'row', gap: 3 }}>
+                  <TextField
+                    id="low-temp"
+                    label="Low Temp"
+                    variant="outlined"
+                    sx={{
+                      '& .MuiInputLabel-root': {
+                        color: 'oklch(0.93 0.005 250)',
+                        fontFamily: '"IBM Plex Mono", monospace',
+                      },
+
+                      '& .MuiInputLabel-root.Mui-focused': {
+                        color: 'oklch(0.93 0.005 250)',
+                      },
+
+                      '& .MuiOutlinedInput-input': {
+                        color: 'oklch(0.93 0.005 250)',
+                        fontFamily: '"IBM Plex Mono", monospace',
+                      },
+
+                      '& .MuiOutlinedInput-root': {
+                        fontFamily: '"IBM Plex Mono", monospace',
+
+                        '& fieldset': {
+                          borderColor: 'oklch(0.93 0.005 250)',
+                        },
+
+                        '&:hover fieldset': {
+                          borderColor: 'oklch(0.93 0.005 250)',
+                        },
+
+                        '&.Mui-focused fieldset': {
+                          borderColor: 'oklch(0.93 0.005 250)',
+                        },
+                      },
+                    }}
+                  />
+
+                  <Button variant='contained' sx={btnBase}>Set</Button>
+                </Box>
+
+              </Box>
+
+
+
+
+            </Box>
+
+          </Card>
+
+
+
+        </Modal>
+
+      </Box>
 
     </>
   )
