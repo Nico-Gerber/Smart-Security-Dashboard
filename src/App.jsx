@@ -168,7 +168,7 @@ function App() {
     { value: "frontdoor", label: "Front Door" },
     { value: "window", label: "Window" },
     { value: "garage", label: "Garage" },
-    { value: "temp", label: "Temp" },
+    { value: "temperature", label: "Temperature" },
   ];
 
   const selectSx = {
@@ -240,10 +240,12 @@ function App() {
 
   const handleCloseSettingsModel = () => setSettingsModal(false)
 
+  const [activityLogs, setActivityLogs] = useState([])
+
   const filteredLogs =
     zoneFilter === "all"
-      ? mockLogs
-      : mockLogs.filter(log => log.zone === zoneFilter)
+      ? activityLogs
+      : activityLogs.filter(log => log.zone === zoneFilter)
 
 
   const visibleLogs = filteredLogs.slice(
@@ -285,6 +287,24 @@ function App() {
   const [highTemp, setHighTemp] = useState("")
   const [lowTemp, setLowTemp] = useState("")
 
+
+
+  const formatLastMessage = (timestamp) => {
+    if (!timestamp) return "Never"
+
+    const secondsAgo = Math.floor(Date.now() / 1000 - timestamp)
+
+    if (secondsAgo < 5) return "Now"
+    if (secondsAgo < 60) return `${secondsAgo}s`
+
+    const minutesAgo = Math.floor(secondsAgo / 60)
+
+    if (minutesAgo < 60) return `${minutesAgo}m`
+
+    const hoursAgo = Math.floor(minutesAgo / 60)
+
+    return `${hoursAgo}h`
+  }
 
   const [scheduleStart, setScheduleStart] = useState({
     h: 22,
@@ -334,7 +354,7 @@ function App() {
   const sendDoorCommand = async (command) => {
     try {
       const response = await fetch(
-        'http://localhost:5001/api/door/command',
+        'http://localhost:5001/api/frontdoor/command',
         {
           method: "POST",
           headers: {
@@ -392,6 +412,8 @@ function App() {
         }
       );
 
+
+
     } catch (error) {
       console.error("Failed to send garage command:", error);
     }
@@ -418,6 +440,66 @@ function App() {
     }
   };
 
+
+  const getDeviceStatus = async () => {
+    try {
+      const response = await fetch("http://localhost:5001/api/status")
+      const data = await response.json()
+
+      console.log("Status data:", data)
+
+      setSecurityPanels(previousPanels =>
+        previousPanels.map(panel => {
+          if (panel.name === "Garage" && data.garage) {
+            return {
+              ...panel,
+              armed: data.garage.armed,
+              status:
+                data.garage.status.charAt(0).toUpperCase() +
+                data.garage.status.slice(1),
+              lastmsg: formatLastMessage(data.garage.last_received)
+            }
+          }
+
+          if (panel.name === "Front Door" && data.frontdoor) {
+            return {
+              ...panel,
+              armed: data.frontdoor.armed,
+              locked: data.frontdoor.locked,
+              status:
+                data.frontdoor.status.charAt(0).toUpperCase() +
+                data.frontdoor.status.slice(1),
+              lastmsg: formatLastMessage(data.frontdoor.last_received)
+            }
+          }
+
+          if (panel.name === "Window" && data.window) {
+            return {
+              ...panel,
+              armed: data.window.armed,
+              status:
+                data.window.status.charAt(0).toUpperCase() +
+                data.window.status.slice(1),
+              lastmsg: formatLastMessage(data.window.last_received)
+            }
+          }
+
+          if (panel.name === "Temperature" && data.temperature) {
+            return {
+              ...panel,
+              status: `${data.temperature.temperature} °C`,
+              lastmsg: formatLastMessage(data.temperature.last_received)
+            }
+          }
+
+          return panel
+        })
+      )
+
+    } catch (error) {
+      console.error("Failed to get device status:", error)
+    }
+  }
 
 
   {/*Get Automation */ }
@@ -501,35 +583,37 @@ function App() {
   // Arm every zone
   function armAll() {
     sendGarageCommand("arm")
-
     sendDoorCommand("ARM")
-
     sendWindowCommand("ARM")
 
     setSecurityPanels(previousPanels =>
-      previousPanels.map(panel => ({
-        ...panel,
-        armed: true
-      }))
+      previousPanels.map(panel =>
+        panel.name === "Temperature"
+          ? panel
+          : {
+            ...panel,
+            armed: true
+          }
+      )
     )
   }
 
 
   // Disarm every zone
   function disarmAll() {
-
     sendGarageCommand("disarm")
-
     sendDoorCommand("DISARM")
-
     sendWindowCommand("DISARM")
 
-
     setSecurityPanels(previousPanels =>
-      previousPanels.map(panel => ({
-        ...panel,
-        armed: false
-      }))
+      previousPanels.map(panel =>
+        panel.name === "Temperature"
+          ? panel
+          : {
+            ...panel,
+            armed: false
+          }
+      )
     )
   }
 
@@ -565,13 +649,36 @@ function App() {
   }
 
 
+  const getActivityLogs = async () => {
+    try {
+      const response = await fetch("http://localhost:5001/api/activity")
+      const data = await response.json()
+
+      console.log("Activity logs:", data)
+
+      setActivityLogs(data)
+    } catch (error) {
+      console.error("Failed to get activity logs:", error)
+    }
+  }
+
+
 
 
   {/*ON LOAD USE EFFECT */ }
 
   useEffect(() => {
-    getAutomationData();
-  }, []);
+    getAutomationData()
+    getDeviceStatus()
+    getActivityLogs()
+
+    const interval = setInterval(() => {
+      getDeviceStatus()
+      getActivityLogs()
+    }, 2000)
+
+    return () => clearInterval(interval)
+  }, [])
 
 
   const [securityPanels, setSecurityPanels] = useState([
@@ -580,7 +687,7 @@ function App() {
       armed: true,
       status: "Closed",
       mqtt: "home/frontdoor/status",
-      lastmsg: "2s",
+      lastmsg: "Never",
       icon: DoorClosed,
       command: sendDoorCommand,
       locked: false
@@ -590,7 +697,7 @@ function App() {
       armed: true,
       status: "Open",
       mqtt: "home/window/status",
-      lastmsg: "20s",
+      lastmsg: "Never",
       icon: Grid2X2,
       command: sendWindowCommand
 
@@ -600,7 +707,7 @@ function App() {
       armed: true,
       status: "Closed",
       mqtt: "home/garage/status",
-      lastmsg: "10m",
+      lastmsg: "Never",
       icon: Warehouse,
       command: sendGarageCommand,
 
@@ -608,10 +715,9 @@ function App() {
     },
     {
       name: "Temperature",
-      armed: true,
       status: "22 °C",
       mqtt: "home/temperature/status",
-      lastmsg: "15m",
+      lastmsg: "Never",
       icon: Thermometer
     }
   ])
@@ -749,6 +855,33 @@ function App() {
 
             const Icon = panel.icon
 
+
+            const isTemperature = panel.name === "Temperature"
+
+            const accentColor = isTemperature
+              ? "#8b5cf6"
+              : panel.armed
+                ? "#56b16d"
+                : "#e6a127"
+
+            const softBg = isTemperature
+              ? "rgba(139, 92, 246, 0.08)"
+              : panel.armed
+                ? "rgba(86, 177, 109, 0.08)"
+                : "rgba(230, 161, 39, 0.08)"
+
+            const softBorder = isTemperature
+              ? "1px solid rgba(139, 92, 246, 0.25)"
+              : panel.armed
+                ? "1px solid rgba(86, 177, 109, 0.25)"
+                : "1px solid rgba(230, 161, 39, 0.25)"
+
+            const softShadow = isTemperature
+              ? "0 0 20px rgba(139, 92, 246, 0.08)"
+              : panel.armed
+                ? "0 0 20px rgba(86, 177, 109, 0.08)"
+                : "0 0 20px rgba(230, 161, 39, 0.08)"
+
             return (
 
 
@@ -759,7 +892,7 @@ function App() {
                   border: "1px solid",
                   borderColor: "#353535ff",
                   borderRadius: 4,
-                  height: 380,
+                  height: 360,
 
                   boxSizing: "border-box",
                   minWidth: 0,
@@ -772,9 +905,7 @@ function App() {
 
                   padding: 2,
 
-                  borderLeft: panel.armed
-                    ? "5px solid #56b16d"
-                    : "5px solid #e6a127"
+                  borderLeft: `5px solid ${accentColor}`
                 }}
               >
 
@@ -810,33 +941,43 @@ function App() {
                       gap: 1
                     }}
                   >
+                    {panel.name !== "Temperature" && (
+                      <>
+                        <Box
+                          sx={{
+                            width: 10,
+                            height: 10,
+                            backgroundColor: panel.armed
+                              ? "#56b16d"
+                              : "#e6a127",
+                            borderRadius: "50%"
+                          }}
+                        />
 
-                    <Box
-                      sx={{
-                        width: 10,
-                        height: 10,
-                        backgroundColor: panel.armed
-                          ? "#56b16d"
-                          : "#e6a127",
-                        borderRadius: "50%"
-                      }}
-                    />
+                        <Typography
+                          sx={{
+                            fontFamily: '"IBM Plex Mono", monospace',
+                            fontSize: 12,
+                            fontWeight: 400,
+                            letterSpacing: "0.18em",
+                            textTransform: "uppercase",
+                            color: "oklch(0.66 0.01 250)",
+                          }}
+                        >
+                          {panel.armed ? "Armed" : "Disarmed"}
+                        </Typography>
+                      </>
+                    )}
 
 
-                    <Typography
-                      sx={{
-                        fontFamily: '"IBM Plex Mono", monospace',
-                        fontSize: 12,
-                        fontWeight: 400,
-                        letterSpacing: "0.18em",
-                        textTransform: "uppercase",
-                        color: "oklch(0.66 0.01 250)",
-                      }}
-                    >
-                      {panel.armed ? "Armed" : "Disarmed"}
-                    </Typography>
+
 
                   </Box>
+
+
+
+
+
 
                 </Box>
 
@@ -870,17 +1011,9 @@ function App() {
                       alignItems: 'center',
                       justifyContent: 'center',
 
-                      backgroundColor: panel.armed
-                        ? 'rgba(86, 177, 109, 0.08)'
-                        : 'rgba(230, 161, 39, 0.08)',
-
-                      border: panel.armed
-                        ? '1px solid rgba(86, 177, 109, 0.25)'
-                        : '1px solid rgba(230, 161, 39, 0.25)',
-
-                      boxShadow: panel.armed
-                        ? '0 0 20px rgba(86, 177, 109, 0.08)'
-                        : '0 0 20px rgba(230, 161, 39, 0.08)'
+                      backgroundColor: softBg,
+                      border: softBorder,
+                      boxShadow: softShadow
                     }}
                   >
                     <Icon
@@ -942,28 +1075,7 @@ function App() {
 
                 </Box>
 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2 }}>
 
-                  <Wifi color='white'></Wifi>
-
-                  <Box sx={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
-                    {/* Last Message */}
-                    <Typography
-                      sx={{ ...smallGray, fontSize: 10 }}
-                    >
-                      Device Status
-                    </Typography>
-
-
-                    <Typography
-                      sx={{ ...smallGray, fontSize: 10, color: "#56b16d" }}
-                    >
-                      Online
-                    </Typography>
-
-                  </Box>
-
-                </Box>
 
                 <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
 
@@ -1195,7 +1307,7 @@ function App() {
               <TableHead>
                 <TableRow>
 
-                  {["Time", "Device", "Event", "Status"].map((heading) => (
+                  {["Time", "Zone", "Event", "Status"].map((heading) => (
 
                     <TableCell
                       key={heading}
@@ -1236,7 +1348,7 @@ function App() {
                         fontFamily: '"IBM Plex Mono", monospace'
                       }}
                     >
-                      {log.time}
+                      {new Date(log.event_time).toLocaleTimeString()}
                     </TableCell>
 
 
@@ -1246,7 +1358,7 @@ function App() {
                         borderBottom: "1px solid #292d30"
                       }}
                     >
-                      {log.device}
+                      {log.zone}
                     </TableCell>
 
 
