@@ -163,47 +163,6 @@ function App() {
 
 
 
-
-  // Arm every zone
-  function armAll() {
-
-    setSecurityPanels(previousPanels =>
-      previousPanels.map(panel => ({
-        ...panel,
-        armed: true
-      }))
-    )
-  }
-
-
-  // Disarm every zone
-  function disarmAll() {
-
-    setSecurityPanels(previousPanels =>
-      previousPanels.map(panel => ({
-        ...panel,
-        armed: false
-      }))
-    )
-  }
-
-
-  // Toggle one individual zone
-  function toggleArmed(panelName) {
-
-    setSecurityPanels(previousPanels =>
-      previousPanels.map(panel =>
-        panel.name === panelName
-          ? {
-            ...panel,
-            armed: !panel.armed
-          }
-          : panel
-      )
-    )
-  }
-
-
   const zoneFilters = [
     { value: "all", label: "All zones" },
     { value: "frontdoor", label: "Front Door" },
@@ -264,8 +223,13 @@ function App() {
 
   const handleOpenEditModel = () => setEditTempModal(true)
 
-  const handleCloseEditModel = () => setEditTempModal(false)
+  const handleCloseEditModel = () => {
 
+    setHighTemp("")
+
+    setLowTemp("")
+    setEditTempModal(false)
+  }
 
 
   const [settingsModal, setSettingsModal] = useState(false)
@@ -318,6 +282,8 @@ function App() {
   const [initialDisarmTime, setInitialDisarmTime] = useState("07:00")
 
 
+  const [highTemp, setHighTemp] = useState("")
+  const [lowTemp, setLowTemp] = useState("")
 
 
   const [scheduleStart, setScheduleStart] = useState({
@@ -335,7 +301,6 @@ function App() {
 
     handleCloseSettingsModel();
   };
-
 
 
   {/*ENDPOINT FUCNTIONS*/ }
@@ -362,6 +327,97 @@ function App() {
       console.error("Failed to send garage command:", error);
     }
   };
+
+
+  {/* Door */ }
+
+  const sendDoorCommand = async (command) => {
+    try {
+      const response = await fetch(
+        'http://localhost:5001/api/door/command',
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            command: command
+          })
+        }
+      );
+
+    } catch (error) {
+      console.error("Failed to send garage command:", error);
+    }
+  };
+
+
+  {/* Window */ }
+
+  const sendWindowCommand = async (command) => {
+    try {
+      const response = await fetch(
+        'http://localhost:5001/api/window/command',
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            command: command
+          })
+        }
+      );
+
+    } catch (error) {
+      console.error("Failed to send garage command:", error);
+    }
+  };
+
+
+  {/* Temperature */ }
+
+  const sendHighTemp = async () => {
+    try {
+      const response = await fetch(
+        'http://localhost:5001/api/temperature/command',
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            command: `HIGH ${highTemp}`
+          })
+        }
+      );
+
+    } catch (error) {
+      console.error("Failed to send garage command:", error);
+    }
+  };
+
+
+  const sendLowTemp = async () => {
+    try {
+      const response = await fetch(
+        'http://localhost:5001/api/temperature/command',
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            command: `LOW ${lowTemp}`
+          })
+        }
+      );
+
+    } catch (error) {
+      console.error("Failed to send garage command:", error);
+    }
+  };
+
 
 
   {/*Get Automation */ }
@@ -442,6 +498,75 @@ function App() {
     getAutomationData();
   };
 
+  // Arm every zone
+  function armAll() {
+    sendGarageCommand("arm")
+
+    sendDoorCommand("ARM")
+
+    sendWindowCommand("ARM")
+
+    setSecurityPanels(previousPanels =>
+      previousPanels.map(panel => ({
+        ...panel,
+        armed: true
+      }))
+    )
+  }
+
+
+  // Disarm every zone
+  function disarmAll() {
+
+    sendGarageCommand("disarm")
+
+    sendDoorCommand("DISARM")
+
+    sendWindowCommand("DISARM")
+
+
+    setSecurityPanels(previousPanels =>
+      previousPanels.map(panel => ({
+        ...panel,
+        armed: false
+      }))
+    )
+  }
+
+
+  // Toggle one individual zone
+  function toggleArmed(panelName) {
+
+
+
+    setSecurityPanels(previousPanels =>
+      previousPanels.map(panel =>
+        panel.name === panelName
+          ? {
+            ...panel,
+            armed: !panel.armed
+          }
+          : panel
+      )
+    )
+  }
+
+  const toggleLocked = (panelName) => {
+    setSecurityPanels(previousPanels =>
+      previousPanels.map(panel =>
+        panel.name === panelName
+          ? {
+            ...panel,
+            locked: !panel.locked
+          }
+          : panel
+      )
+    )
+  }
+
+
+
+
   {/*ON LOAD USE EFFECT */ }
 
   useEffect(() => {
@@ -456,7 +581,9 @@ function App() {
       status: "Closed",
       mqtt: "home/frontdoor/status",
       lastmsg: "2s",
-      icon: DoorClosed
+      icon: DoorClosed,
+      command: sendDoorCommand,
+      locked: false
     },
     {
       name: "Window",
@@ -464,7 +591,8 @@ function App() {
       status: "Open",
       mqtt: "home/window/status",
       lastmsg: "20s",
-      icon: Grid2X2
+      icon: Grid2X2,
+      command: sendWindowCommand
 
     },
     {
@@ -474,7 +602,8 @@ function App() {
       mqtt: "home/garage/status",
       lastmsg: "10m",
       icon: Warehouse,
-      command: sendGarageCommand
+      command: sendGarageCommand,
+
 
     },
     {
@@ -849,7 +978,8 @@ function App() {
                       <Button
                         variant="contained"
 
-                        onClick={() => { toggleArmed(panel.name); }}
+                        onClick={() => { toggleArmed(panel.name); { panel.armed ? panel.command("DISARM") : panel.command("ARM") } }}
+
                         sx={{
                           ...btnBase,
                           width: 150
@@ -859,13 +989,18 @@ function App() {
                       </Button>
 
                       <Button
-                        variant='contained'
-
+                        variant="contained"
+                        onClick={() => {
+                          panel.command(panel.locked ? "UNLOCK" : "LOCK")
+                          toggleLocked(panel.name)
+                        }}
                         sx={{
                           ...btnBase,
                           width: 150
-
-                        }}>Lock</Button>
+                        }}
+                      >
+                        {panel.locked ? "Unlock" : "Lock"}
+                      </Button>
 
 
 
@@ -883,7 +1018,7 @@ function App() {
                       <Button
                         variant="contained"
 
-                        onClick={() => { toggleArmed(panel.name); }}
+                        onClick={() => { toggleArmed(panel.name); { panel.armed ? panel.command("DISARM") : panel.command("ARM") } }}
                         sx={{
                           ...btnBase,
                           width: 300
@@ -922,11 +1057,10 @@ function App() {
                           ...btnBase,
                           width: 150
 
-                        }}>Scilence</Button>
+                        }}>Silence</Button>
 
                     </Box>
                   )}
-
 
                   {/* Tempreture Buttons */}
 
@@ -1207,7 +1341,8 @@ function App() {
 
       {/* TEMPERATURE MODAL*/}
 
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+      < Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }
+      }>
         <Modal
           open={editTempModal}
           onClose={handleCloseEditModel}
@@ -1246,6 +1381,9 @@ function App() {
                     id="high-temp"
                     label="High Temp"
                     variant="outlined"
+                    value={highTemp}
+                    type='number'
+                    onChange={(event) => setHighTemp(event.target.value)}
                     sx={{
                       '& .MuiInputLabel-root': {
                         color: 'oklch(0.93 0.005 250)',
@@ -1278,7 +1416,7 @@ function App() {
                       },
                     }}
                   />
-                  <Button variant='contained' sx={btnBase}>Set</Button>
+                  <Button variant='contained' sx={btnBase} onClick={sendHighTemp}>Set</Button>
 
                 </Box>
 
@@ -1288,6 +1426,9 @@ function App() {
                     id="low-temp"
                     label="Low Temp"
                     variant="outlined"
+                    type='number'
+                    value={lowTemp}
+                    onChange={(event) => setLowTemp(event.target.value)}
                     sx={{
                       '& .MuiInputLabel-root': {
                         color: 'oklch(0.93 0.005 250)',
@@ -1321,7 +1462,7 @@ function App() {
                     }}
                   />
 
-                  <Button variant='contained' sx={btnBase}>Set</Button>
+                  <Button variant='contained' sx={btnBase} onClick={sendLowTemp}>Set</Button>
                 </Box>
 
               </Box>
@@ -1338,14 +1479,14 @@ function App() {
         </Modal>
 
 
-      </Box>
+      </Box >
 
 
 
 
       {/* SETTINGS MODAL */}
 
-      <Modal
+      < Modal
         open={settingsModal}
         onClose={handleCloseSettingsModel}
       >
@@ -1578,7 +1719,7 @@ function App() {
         </Card>
 
 
-      </Modal>
+      </Modal >
     </>
   )
 }
