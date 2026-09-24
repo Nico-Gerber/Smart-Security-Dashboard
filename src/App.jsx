@@ -33,104 +33,8 @@ import { OrbitProgress } from "react-loading-indicators";
 function App() {
 
 
-  const mockLogs = [
-    {
-      id: 1,
-      time: "13:24:12",
-      zone: "garage",
-      device: "Garage",
-      event: "Door closed",
-      status: "Info"
-    },
-    {
-      id: 2,
-      time: "13:23:48",
-      zone: "window",
-      device: "Window",
-      event: "Window opened",
-      status: "Warning"
-    },
-    {
-      id: 3,
-      time: "13:22:31",
-      zone: "frontdoor",
-      device: "Front Door",
-      event: "Door closed",
-      status: "Info"
-    },
-    {
-      id: 4,
-      time: "13:21:05",
-      zone: "temp",
-      device: "Temperature",
-      event: "Temperature updated to 22°C",
-      status: "Info"
-    },
-    {
-      id: 5,
-      time: "13:19:42",
-      zone: "garage",
-      device: "Garage",
-      event: "Garage armed",
-      status: "Info"
-    },
-    {
-      id: 6,
-      time: "13:18:17",
-      zone: "window",
-      device: "Window",
-      event: "Window closed",
-      status: "Info"
-    },
-    {
-      id: 7,
-      time: "13:16:53",
-      zone: "frontdoor",
-      device: "Front Door",
-      event: "Door opened",
-      status: "Warning"
-    },
-    {
-      id: 8,
-      time: "13:14:26",
-      zone: "temp",
-      device: "Temperature",
-      event: "Temperature changed to 23°C",
-      status: "Info"
-    },
-    {
-      id: 9,
-      time: "13:12:10",
-      zone: "garage",
-      device: "Garage",
-      event: "Door opened",
-      status: "Warning"
-    },
-    {
-      id: 10,
-      time: "13:10:02",
-      zone: "garage",
-      device: "Garage",
-      event: "Garage disarmed",
-      status: "Info"
-    },
-    {
-      id: 11,
-      time: "13:08:44",
-      zone: "window",
-      device: "Window",
-      event: "Window opened",
-      status: "Warning"
-    },
-    {
-      id: 12,
-      time: "13:06:15",
-      zone: "frontdoor",
-      device: "Front Door",
-      event: "Front door armed",
-      status: "Info"
-    }
-  ]
+
+
 
   const btnBase = {
     fontFamily: '"IBM Plex Sans", sans-serif',
@@ -1231,7 +1135,21 @@ function App() {
         >
 
 
-          <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2, justifyContent: 'space-between' }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: {
+                xs: "column",
+                sm: "row"
+              },
+              gap: 2,
+              justifyContent: "space-between",
+              alignItems: {
+                xs: "stretch",
+                sm: "center"
+              }
+            }}
+          >
 
             <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2, alignItems: 'center' }}>
 
@@ -1320,7 +1238,7 @@ function App() {
               <TableHead>
                 <TableRow>
 
-                  {["Time", "Zone", "Event", "Status"].map((heading) => (
+                  {["Date / Time", "Zone", "Event", "Status"].map((heading) => (
 
                     <TableCell
                       key={heading}
@@ -1361,7 +1279,7 @@ function App() {
                         fontFamily: '"IBM Plex Mono", monospace'
                       }}
                     >
-                      {new Date(log.event_time).toLocaleTimeString()}
+                      {new Date(log.event_time).toLocaleString()}
                     </TableCell>
 
 
@@ -1371,7 +1289,7 @@ function App() {
                         borderBottom: "1px solid #292d30"
                       }}
                     >
-                      {log.zone}
+                      {log.zone.charAt(0).toUpperCase() + log.zone.slice(1)}
                     </TableCell>
 
 
