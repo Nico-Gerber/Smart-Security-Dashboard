@@ -5,6 +5,9 @@ import paho.mqtt.client as mqtt
 
 import pymysql
 
+import threading
+from datetime import datetime
+
 
 import json
 import time
@@ -198,6 +201,95 @@ def db_connection():
         port=3306,
         cursorclass=pymysql.cursors.DictCursor
     )
+
+def automation_loop():
+
+    last_action = None
+
+    while True:
+
+        try:
+            connection = db_connection()
+
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT
+                        arm_automation_on,
+                        arm_time,
+                        disarm_time
+                    FROM automation_settings
+                    WHERE id = 1
+                """)
+
+                settings = cursor.fetchone()
+
+            connection.close()
+
+
+            if settings and settings["arm_automation_on"]:
+
+                now = datetime.now().strftime("%H:%M")
+
+                arm_time = str(settings["arm_time"])[:5]
+                disarm_time = str(settings["disarm_time"])[:5]
+
+
+                if now == arm_time and last_action != "ARM":
+
+                    print("Automation: ARM ALL")
+
+                    mqtt_client.publish(
+                        GARAGE_COMMAND_TOPIC,
+                        "ARM"
+                    )
+
+                    mqtt_client.publish(
+                        FRONTDOOR_COMMAND_TOPIC,
+                        "ARM"
+                    )
+
+                    mqtt_client.publish(
+                        WINDOW_COMMAND_TOPIC,
+                        "ARM"
+                    )
+
+                    last_action = "ARM"
+
+
+                elif now == disarm_time and last_action != "DISARM":
+
+                    print("Automation: DISARM ALL")
+
+                    mqtt_client.publish(
+                        GARAGE_COMMAND_TOPIC,
+                        "DISARM"
+                    )
+
+                    mqtt_client.publish(
+                        FRONTDOOR_COMMAND_TOPIC,
+                        "DISARM"
+                    )
+
+                    mqtt_client.publish(
+                        WINDOW_COMMAND_TOPIC,
+                        "DISARM"
+                    )
+
+                    last_action = "DISARM"
+
+
+            time.sleep(10)
+
+
+        except Exception as error:
+
+            print(
+                "Automation error:",
+                error
+            )
+
+            time.sleep(10)
+
 
 def save_activity_log(zone, event, status):
     connection = db_connection()

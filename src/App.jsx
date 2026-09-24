@@ -22,7 +22,7 @@ import {
 } from '@mui/material'
 import { useState, useEffect } from 'react'
 
-import { DoorClosed, Warehouse, Thermometer, Grid2X2, Clock, Wifi, FileText, Settings, Unlock, Shield } from 'lucide-react'
+import { DoorClosed, Warehouse, Thermometer, Grid2X2, Clock, Wifi, FileText, Settings, Unlock, Shield, Lock } from 'lucide-react'
 
 
 import { CircularSlider } from 'react-web-circular-slider';
@@ -551,33 +551,43 @@ function App() {
 
   {/* Update Automation */ }
   const updateAutomation = async () => {
-    const armTime =
-      `${String(scheduleStart.h).padStart(2, '0')}:${String(scheduleStart.m).padStart(2, '0')}:00`;
+    try {
+      setAutomationLoading(true)
+      const armTime =
+        `${String(scheduleStart.h).padStart(2, '0')}:${String(scheduleStart.m).padStart(2, '0')}:00`;
 
-    const disarmTime =
-      `${String(scheduleEnd.h).padStart(2, '0')}:${String(scheduleEnd.m).padStart(2, '0')}:00`;
+      const disarmTime =
+        `${String(scheduleEnd.h).padStart(2, '0')}:${String(scheduleEnd.m).padStart(2, '0')}:00`;
 
-    const response = await fetch(
-      'http://localhost:5001/automation',
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          armAutomationOn: automation,
-          armTime: armTime,
-          disarmTime: disarmTime
-        })
-      }
-    );
+      const response = await fetch(
+        'http://localhost:5001/automation',
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            armAutomationOn: automation,
+            armTime: armTime,
+            disarmTime: disarmTime
+          })
+        }
+      );
 
-    const data = await response.json();
+      const data = await response.json();
 
-    console.log(data);
+      console.log(data);
+
+      handleCloseSettingsModel()
 
 
-    getAutomationData();
+      getAutomationData();
+    } catch (error) {
+      console.error("Failed to save automation data:", error)
+    } finally {
+      setAutomationLoading(false)
+    }
+
   };
 
   // Arm every zone
@@ -1016,10 +1026,13 @@ function App() {
                       boxShadow: softShadow
                     }}
                   >
-                    <Icon
-                      size={50}
-                      color="white"
-                    />
+                    {panel.name === "Front Door" ? (
+                      panel.locked
+                        ? <Lock size={50} color="white" />
+                        : <Unlock size={50} color="white" />
+                    ) : (
+                      <Icon size={50} color="white" />
+                    )}
                   </Box>
 
 
