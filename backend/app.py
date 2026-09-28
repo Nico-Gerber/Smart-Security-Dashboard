@@ -12,16 +12,22 @@ from datetime import datetime
 import json
 import time
 
+from config import (
+    MQTT_HOST,
+    MQTT_PORT,
+    MQTT_USERNAME,
+    MQTT_PASSWORD,
+    DB_HOST,
+    DB_USER,
+    DB_PASSWORD,
+    DB_NAME,
+    DB_PORT,
+    FLASK_PORT,
+)
+
 
 app = Flask(__name__)
 CORS(app)
-
-# MQTT configuration
-MQTT_HOST = "l69c6c62.ala.asia-southeast1.emqxsl.com"
-MQTT_PORT = 8883
-
-MQTT_USERNAME = "smart_home_team"
-MQTT_PASSWORD = "smarthome"
 
 GARAGE_COMMAND_TOPIC = "home/garage/command"
 
@@ -194,11 +200,11 @@ mqtt_client.loop_start()
 
 def db_connection():
     return pymysql.connect(
-        host="smarthome-db.c70ieeogomw1.us-east-2.rds.amazonaws.com",
-        user="admin",
-        password="SmartHom3",
-        database="smarthome_db",
-        port=3306,
+        host=DB_HOST,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        database=DB_NAME,
+        port=DB_PORT,
         cursorclass=pymysql.cursors.DictCursor
     )
 
@@ -557,6 +563,6 @@ def temperature_command():
 if __name__ == "__main__":
     app.run(
         debug=True,
-        port=5001,
+        port=FLASK_PORT,
         use_reloader=False
     )
