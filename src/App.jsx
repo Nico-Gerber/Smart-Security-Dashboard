@@ -20,9 +20,11 @@ import {
   FormControlLabel,
   useMediaQuery
 } from '@mui/material'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
-import { DoorClosed, Warehouse, Thermometer, Grid2X2, Clock, Wifi, FileText, Settings, Unlock, Shield, Lock } from 'lucide-react'
+import { DoorClosed, Warehouse, Thermometer, Grid2X2, Clock, Wifi, FileText, Settings, Unlock, Shield, Lock, AlertTriangle } from 'lucide-react'
+
+import { API_BASE_URL } from './config'
 
 
 import { CircularSlider } from 'react-web-circular-slider';
@@ -121,6 +123,22 @@ function App() {
 
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(5)
+
+
+  {/* Central security alert (armed node opened / presence detected) */ }
+
+  const securityZones = [
+    { key: "garage", label: "Garage" },
+    { key: "frontdoor", label: "Front Door" },
+    { key: "window", label: "Window" },
+  ]
+
+  const [securityAlertOpen, setSecurityAlertOpen] = useState(false)
+  const [activeBreaches, setActiveBreaches] = useState([])
+
+  const previousBreachZonesRef = useRef(new Set())
+
+  const handleAcknowledgeAlert = () => setSecurityAlertOpen(false)
 
 
   const [editTempModal, setEditTempModal] = useState(false)
@@ -235,7 +253,7 @@ function App() {
   const sendGarageCommand = async (command) => {
     try {
       const response = await fetch(
-        '/api/garage/command',
+        `${API_BASE_URL}/api/garage/command`,
         {
           method: "POST",
           headers: {
@@ -258,7 +276,7 @@ function App() {
   const sendDoorCommand = async (command) => {
     try {
       const response = await fetch(
-        '/api/frontdoor/command',
+        `${API_BASE_URL}/api/frontdoor/command`,
         {
           method: "POST",
           headers: {
@@ -281,7 +299,7 @@ function App() {
   const sendWindowCommand = async (command) => {
     try {
       const response = await fetch(
-        '/api/window/command',
+        `${API_BASE_URL}/api/window/command`,
         {
           method: "POST",
           headers: {
@@ -304,7 +322,7 @@ function App() {
   const sendHighTemp = async () => {
     try {
       const response = await fetch(
-        '/api/temperature/command',
+        `${API_BASE_URL}/api/temperature/command`,
         {
           method: "POST",
           headers: {
@@ -327,7 +345,7 @@ function App() {
   const sendLowTemp = async () => {
     try {
       const response = await fetch(
-        '/api/temperature/command',
+        `${API_BASE_URL}/api/temperature/command`,
         {
           method: "POST",
           headers: {
@@ -347,10 +365,41 @@ function App() {
 
   const getDeviceStatus = async () => {
     try {
-      const response = await fetch("/api/status")
+      const response = await fetch(`${API_BASE_URL}/api/status`)
       const data = await response.json()
 
       console.log("Status data:", data)
+
+      {/* A node is a security concern when it's armed and open/presence is
+          detected. Detect NEW breaches (edge-triggered) so the modal pops
+          up automatically without re-opening on every 2s poll once seen. */}
+
+      const currentBreaches = securityZones
+        .filter(({ key }) => {
+          const zoneData = data[key]
+          return zoneData && zoneData.armed && zoneData.status === "open"
+        })
+        .map(({ key, label }) => ({
+          zone: key,
+          label,
+          message: `${label} was opened while armed`
+        }))
+
+      const currentBreachZones = new Set(currentBreaches.map(b => b.zone))
+
+      const hasNewBreach = currentBreaches.some(
+        b => !previousBreachZonesRef.current.has(b.zone)
+      )
+
+      setActiveBreaches(currentBreaches)
+
+      if (hasNewBreach) {
+        setSecurityAlertOpen(true)
+      } else if (currentBreaches.length === 0) {
+        setSecurityAlertOpen(false)
+      }
+
+      previousBreachZonesRef.current = currentBreachZones
 
       setSecurityPanels(previousPanels =>
         previousPanels.map(panel => {
@@ -412,7 +461,7 @@ function App() {
       setAutomationLoading(true)
 
       const response = await fetch(
-        '/automation'
+        `${API_BASE_URL}/automation`
       )
 
       const data = await response.json()
@@ -464,7 +513,7 @@ function App() {
         `${String(scheduleEnd.h).padStart(2, '0')}:${String(scheduleEnd.m).padStart(2, '0')}:00`;
 
       const response = await fetch(
-        '/automation',
+        `${API_BASE_URL}/automation`,
         {
           method: "PUT",
           headers: {
@@ -565,7 +614,7 @@ function App() {
 
   const getActivityLogs = async () => {
     try {
-      const response = await fetch("/api/activity")
+      const response = await fetch(`${API_BASE_URL}/api/activity`)
       const data = await response.json()
 
       console.log("Activity logs:", data)
@@ -715,6 +764,31 @@ function App() {
                 gap: 2
               }}
             >
+
+              {/* Reopens the alert modal if it was acknowledged while the
+                  breach is still active, so the concern isn't lost. */}
+              {activeBreaches.length > 0 && (
+                <Button
+                  onClick={() => setSecurityAlertOpen(true)}
+                  variant="contained"
+                  disableElevation
+                  startIcon={<AlertTriangle size={16} />}
+                  sx={{
+                    ...btnBase,
+                    height: 45,
+                    color: "#e64c3c",
+                    borderColor: "rgba(230, 76, 60, 0.4)",
+                    backgroundColor: "rgba(230, 76, 60, 0.12)",
+
+                    "&:hover": {
+                      backgroundColor: "rgba(230, 76, 60, 0.2)",
+                      boxShadow: "none"
+                    },
+                  }}
+                >
+                  {activeBreaches.length} Alert{activeBreaches.length > 1 ? "s" : ""}
+                </Button>
+              )}
 
               <Button
                 onClick={armAll}
@@ -1380,6 +1454,143 @@ function App() {
 
       </Container >
 
+
+      {/* CENTRAL SECURITY ALERT MODAL */}
+      {/* Pops up automatically (edge-triggered in getDeviceStatus) whenever
+          an armed node reports open/presence. Stays reopenable via the
+          acknowledge button until the breach clears. */}
+
+      < Modal
+        open={securityAlertOpen}
+        onClose={handleAcknowledgeAlert}
+      >
+        <Card
+          sx={{
+            width: {
+              xs: 'calc(100% - 32px)',
+              sm: 420,
+            },
+
+            maxWidth: 420,
+
+            transform: 'translate(-50%, -50%)',
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+
+            backgroundColor: '#1c1414',
+
+            border: '1px solid rgba(230, 76, 60, 0.4)',
+            borderRadius: 3,
+
+            boxShadow: '0 0 40px rgba(230, 76, 60, 0.25)',
+          }}
+        >
+          <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+
+            <Box
+              sx={{
+                width: 70,
+                height: 70,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: 'rgba(230, 76, 60, 0.12)',
+                border: '1px solid rgba(230, 76, 60, 0.4)',
+                mb: 2,
+              }}
+            >
+              <AlertTriangle size={36} color="#e64c3c" />
+            </Box>
+
+            <Typography
+              sx={{
+                fontFamily: '"IBM Plex Mono", monospace',
+                fontSize: 12,
+                fontWeight: 400,
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+                color: "#e64c3c",
+                mb: 0.5
+              }}
+            >
+              Security Alert
+            </Typography>
+
+            <Typography
+              component="h2"
+              sx={{
+                fontFamily: '"IBM Plex Sans", sans-serif',
+                fontSize: 22,
+                fontWeight: 500,
+                letterSpacing: "-0.01em",
+                color: "oklch(0.95 0.005 250)",
+                textAlign: 'center',
+                mb: 2,
+              }}
+            >
+              Armed node breached
+            </Typography>
+
+            <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
+              {activeBreaches.map((breach) => (
+                <Box
+                  key={breach.zone}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    padding: '10px 14px',
+                    borderRadius: 2,
+                    backgroundColor: 'rgba(230, 76, 60, 0.08)',
+                    border: '1px solid rgba(230, 76, 60, 0.25)',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      backgroundColor: '#e64c3c',
+                      flexShrink: 0,
+                    }}
+                  />
+
+                  <Typography
+                    sx={{
+                      fontFamily: '"IBM Plex Mono", monospace',
+                      fontSize: 12,
+                      color: "oklch(0.90 0.005 250)",
+                    }}
+                  >
+                    {breach.message}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+
+            <Button
+              variant="contained"
+              onClick={handleAcknowledgeAlert}
+              sx={{
+                ...btnBase,
+                width: '100%',
+                backgroundColor: 'rgba(230, 76, 60, 0.15)',
+                borderColor: 'rgba(230, 76, 60, 0.4)',
+
+                "&:hover": {
+                  backgroundColor: 'rgba(230, 76, 60, 0.25)',
+                  boxShadow: "none"
+                },
+              }}
+            >
+              Acknowledge
+            </Button>
+
+          </Box>
+        </Card>
+      </Modal >
 
 
       {/* TEMPERATURE MODAL*/}

@@ -3,6 +3,10 @@ dist/
 .DS_Store
 .env
 .env.*
+!.env.example
+!backend/.env.example
 backend/venv/
 __pycache__/
 *.pyc
+backend/.env.example
+.env.example
