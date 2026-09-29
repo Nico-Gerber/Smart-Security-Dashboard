@@ -235,7 +235,7 @@ function App() {
   const sendGarageCommand = async (command) => {
     try {
       const response = await fetch(
-        'http://localhost:5001/api/garage/command',
+        '/api/garage/command',
         {
           method: "POST",
           headers: {
@@ -258,7 +258,7 @@ function App() {
   const sendDoorCommand = async (command) => {
     try {
       const response = await fetch(
-        'http://localhost:5001/api/frontdoor/command',
+        '/api/frontdoor/command',
         {
           method: "POST",
           headers: {
@@ -281,7 +281,7 @@ function App() {
   const sendWindowCommand = async (command) => {
     try {
       const response = await fetch(
-        'http://localhost:5001/api/window/command',
+        '/api/window/command',
         {
           method: "POST",
           headers: {
@@ -304,7 +304,7 @@ function App() {
   const sendHighTemp = async () => {
     try {
       const response = await fetch(
-        'http://localhost:5001/api/temperature/command',
+        '/api/temperature/command',
         {
           method: "POST",
           headers: {
@@ -327,7 +327,7 @@ function App() {
   const sendLowTemp = async () => {
     try {
       const response = await fetch(
-        'http://localhost:5001/api/temperature/command',
+        '/api/temperature/command',
         {
           method: "POST",
           headers: {
@@ -347,7 +347,7 @@ function App() {
 
   const getDeviceStatus = async () => {
     try {
-      const response = await fetch("http://localhost:5001/api/status")
+      const response = await fetch("/api/status")
       const data = await response.json()
 
       console.log("Status data:", data)
@@ -412,7 +412,7 @@ function App() {
       setAutomationLoading(true)
 
       const response = await fetch(
-        'http://localhost:5001/automation'
+        '/automation'
       )
 
       const data = await response.json()
@@ -464,7 +464,7 @@ function App() {
         `${String(scheduleEnd.h).padStart(2, '0')}:${String(scheduleEnd.m).padStart(2, '0')}:00`;
 
       const response = await fetch(
-        'http://localhost:5001/automation',
+        '/automation',
         {
           method: "PUT",
           headers: {
@@ -565,7 +565,7 @@ function App() {
 
   const getActivityLogs = async () => {
     try {
-      const response = await fetch("http://localhost:5001/api/activity")
+      const response = await fetch("/api/activity")
       const data = await response.json()
 
       console.log("Activity logs:", data)
