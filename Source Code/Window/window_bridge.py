@@ -105,37 +105,37 @@ try:
 
                 if line == "ALARM_ON":
                     status_data = {
-                        "status": "presence detected",
-                        "alarm": "active",
-                        "armed": "true"
+                        "status": "!!Motion!!",
+                        "alarm": True,
+                        "armed": True
                     }
 
                 elif line == "ALARM_OFF":
                     status_data = {
-                        "status": "no presence detected",
-                        "alarm": "inactive",
-                        "armed": "true"
+                        "status": "No Motion",
+                        "alarm": False,
+                        "armed": True
                     }
 
                 elif line == "ARMED":
                     status_data = {
-                        "status": "no presence detected",
-                        "alarm": "inactive",
-                        "armed": "true"
+                        "status": "No Motion",
+                        "alarm": False,
+                        "armed": True
                     }
 
                 elif line == "DISARMED":
                     status_data = {
                         "status": "N/A",
-                        "alarm": "inactive",
-                        "armed": "false"
+                        "alarm": False,
+                        "armed": False
                     }
 
                 else:
                     status_data = {
-                        "status": "no presence detected",
-                        "alarm": "inactive",
-                        "armed": "true"
+                        "status": "No Motion",
+                        "alarm": False,
+                        "armed": True
                     }
 
                 # Convert Python dictionary to JSON
